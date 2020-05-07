@@ -1,5 +1,48 @@
-import React, { useState, useEffect} from 'react';
+import React, { useState, useEffect, useReducer} from 'react';
 const {v4: uuidv4} = require('uuid');
+
+const initialTasksState = {
+    tasks: [],
+    completedTasks: []
+};
+
+const TYPES = {
+    ADD_TASK: 'ADD_TASK',
+    COMPLETE_TASK: 'COMPLETE_TASK',
+    DELETE_TASK: 'DELETE_TASK'
+}
+
+const taskReducer = (state, action) => {
+    console.log('state', state, 'action', action);
+
+    switch (action.type) {
+        case TYPES.ADD_TASK:
+            return {
+                ...state,
+                tasks: [...state.tasks, action.task]
+            }            
+            
+        case TYPES.COMPLETE_TASK: 
+            const { task } = action;
+
+            return {
+                ...state,
+                completedTasks: [...state.completedTasks, task],
+                tasks: state.tasks.filter(t => t.id !== task.id)
+            }
+        
+        case TYPES.DELETE_TASK: 
+            // const { task } = action;
+
+            return {
+                ...state,
+                completedTasks: state.tasks.filter(t => t.id !== action.task.id),
+            }        
+        default:
+            return state;
+    }
+
+}
 
 const TASKS_STORAGE_KEY = 'TASKS_STORAGE_KEY';
 
@@ -13,34 +56,34 @@ const storeTasks = ({tasks, completedTasks}) => {
 const readStoredTasks = () => {
     const taskMap = JSON.parse(localStorage.getItem(TASKS_STORAGE_KEY));
 
-    return taskMap ? taskMap : { tasks: [], completedTasks: [] };
+    return taskMap ? taskMap : initialTasksState;
 }
 
 function Tasks() {
     const [taskText, setTaskText] = useState('');
     const storedTasks = readStoredTasks();
-    const [tasks, setTasks] = useState(storedTasks.tasks);
-    const [completedTasks, setCompletedTasks] = useState(storedTasks.completedTasks);
+
+    const [state, dispatch] = useReducer(taskReducer, storedTasks);
+    const { tasks, completedTasks} = state;
 
     useEffect(() => {
             storeTasks({tasks, completedTasks});
-    });
+    }, []);
 
     const updateTaskText = event => {
         setTaskText(event.target.value);
     }
 
     const addTask = () => {
-        setTasks([...tasks, { taskText, id: uuidv4()}]);
+        dispatch({type: TYPES.ADD_TASK, task: { taskText, id: uuidv4()}});
     }
 
     const completeTasks = completeTask => () => {
-        setCompletedTasks([...completedTasks, completeTask]);
-        setTasks(tasks.filter(task => task.id !== completeTask.id));
+        dispatch({type: TYPES.COMPLETE_TASK, task: completeTask });
     }
 
     const deleteTask = task => () => {
-        setCompletedTasks(completedTasks.filter(t => t.id !== task.id));
+        dispatch({type: TYPES.DELETE_TASK, task: task });
     }
 
     return (
