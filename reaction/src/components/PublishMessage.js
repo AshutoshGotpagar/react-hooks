@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { newMessage } from '../state/actions';
+import { useAppContext } from './hooks';
 
-function PublishMessage(props) {
-    const { dispatch } = props;
+function PublishMessage() {
+    const { state: {username}, pubsub: {publish} } = useAppContext();
 
     const [text, setText] = useState('');
     
@@ -10,7 +11,7 @@ function PublishMessage(props) {
         setText(event.target.value);
     }
 
-    const publishItem = () => (dispatch(newMessage(text)))
+    const publishItem = () => (publish(newMessage({text, username})));
 
     const handleKeyPress = event => {
         if(event.key === 'Enter'){
